@@ -42,13 +42,12 @@ jobs:
           uname -m
           xcode-select -p
 
-      - name: Remove brew/macports interference
+      - name: Note brew/macports state
         run: |
-          # gtk-osx jhbuild conflicts with brew. Remove if present.
-          # Don't actually `brew uninstall` everything (slow); just hide it from PATH.
-          echo "Hiding brew from PATH for this build"
-          echo 'unset HOMEBREW_PREFIX' >> $GITHUB_ENV
-          # Keep brew binaries available but lower priority.
+          # gtk-osx jhbuild conflicts with brew if used in same shell.
+          # We use jhbuild prefix in isolated paths so brew stays out of jhbuild's way.
+          which brew || true
+          echo "jhbuild will use isolated prefix at $JHBUILD_PREFIX"
 
       - name: Setup gtk-osx-build (jhbuild)
         run: |
