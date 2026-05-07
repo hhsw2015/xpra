@@ -12,7 +12,7 @@
 %endif
 
 Name:           %{py3rpmname}-pytools
-Version:        2024.1.11
+Version:        2026.1
 Release:        1%{?dist}
 Summary:        A collection of tools for python
 Group:          Development/Languages
@@ -48,7 +48,7 @@ Small tool functions such as ::
 
 %prep
 sha256=`sha256sum %{SOURCE0} | awk '{print $1}'`
-if [ "${sha256}" != "fa966e09857bcd9299f961d58fc128e8333e4ac5fcea52473af5aae88f814e38" ]; then
+if [ "${sha256}" != "7b6438ca5ecdedee42e16c8cb702c2ae562a98fb262dac1a3b01b121cc34bed5" ]; then
 	echo "invalid checksum for %{SOURCE0}"
 	exit 1
 fi
@@ -56,7 +56,6 @@ fi
 
 
 %build
-# %pyproject_wheel
 %{python3} -m pip wheel . --no-deps
 
 
@@ -76,6 +75,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri May 08 2026 Antoine Martin <antoine@xpra.org> - 2026.1-1
+- new upstream release
+
 * Sun Jul 28 2024 Antoine Martin <antoine@xpra.org> - 2024.1.11-1
 - new upstream release
 
