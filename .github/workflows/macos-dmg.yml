@@ -1,0 +1,157 @@
+name: macOS DMG Build (custom GStreamer 1.24)
+
+on:
+  push:
+    branches:
+      - master
+      - 'macos-build-*'
+    paths:
+      - '.github/workflows/macos-dmg.yml'
+      - 'packaging/MacOS/**'
+      - 'xpra/**'
+      - 'setup.py'
+  workflow_dispatch:
+    inputs:
+      gst_version:
+        description: 'GStreamer version to lock (e.g. 1.24.9)'
+        required: false
+        default: '1.24.9'
+
+# 6h job limit on macOS runners. First build = ~4-6h. Cache halves subsequent.
+jobs:
+  build-arm64:
+    name: Build arm64 DMG
+    runs-on: macos-15  # Apple Silicon
+    timeout-minutes: 350  # ~5h50m, leaves margin under 6h limit
+
+    env:
+      GST_LOCKED_VERSION: ${{ github.event.inputs.gst_version || '1.24.9' }}
+      JHBUILD_PREFIX: ${{ github.workspace }}/jhbuild_prefix
+      JHBUILD_SOURCE: ${{ github.workspace }}/jhbuild_source
+      XPRA_VERSION_TAG: 6.4.3-gst1.24-custom
+
+    steps:
+      - name: Checkout xpra fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Show macOS info
+        run: |
+          sw_vers
+          uname -m
+          xcode-select -p
+
+      - name: Remove brew/macports interference
+        run: |
+          # gtk-osx jhbuild conflicts with brew. Remove if present.
+          # Don't actually `brew uninstall` everything (slow); just hide it from PATH.
+          echo "Hiding brew from PATH for this build"
+          echo 'unset HOMEBREW_PREFIX' >> $GITHUB_ENV
+          # Keep brew binaries available but lower priority.
+
+      - name: Setup gtk-osx-build (jhbuild)
+        run: |
+          set -euxo pipefail
+          if [ ! -d gtk-osx-build ]; then
+            git clone --depth 1 https://github.com/Xpra-org/gtk-osx-build "${{ github.workspace }}/gtk-osx-build"
+          fi
+          cd "${{ github.workspace }}/gtk-osx-build"
+          # Run setup non-interactively
+          sh gtk-osx-setup.sh || true
+          # Add jhbuild to path for subsequent steps
+          echo "${HOME}/.new_local/bin" >> $GITHUB_PATH
+
+      - name: Configure jhbuildrc with version pins
+        run: |
+          set -euxo pipefail
+          mkdir -p "${HOME}/.config"
+          ln -sf "${{ github.workspace }}/gtk-osx-build/jhbuildrc-gtk-osx" "${HOME}/.config/jhbuildrc"
+          # custom rc — pin GStreamer 1.24 + override checkout/install dirs to be cacheable
+          cat > "${HOME}/.config/jhbuildrc-custom" <<EOF
+          # GitHub Actions cache-friendly paths
+          checkoutroot = '${{ env.JHBUILD_SOURCE }}'
+          prefix = '${{ env.JHBUILD_PREFIX }}'
+
+          # Lock GStreamer to 1.24.x to avoid the 1.26 appsrc caps regression on macOS 26
+          # See: https://gitlab.freedesktop.org/gstreamer/gstreamer/-/issues/...
+          branches['gstreamer'] = ('https://gitlab.freedesktop.org/gstreamer/gstreamer.git', '${{ env.GST_LOCKED_VERSION }}')
+
+          # Tweak module versions to match 1.24 ecosystem
+          module_autogenargs['gstreamer-1.0'] = '--enable-introspection'
+
+          # Faster build
+          jhbuild_pretty_print = False
+          EOF
+          mkdir -p "${{ env.JHBUILD_PREFIX }}" "${{ env.JHBUILD_SOURCE }}"
+
+      - name: Cache jhbuild prefix + source
+        id: cache-jhbuild
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.JHBUILD_PREFIX }}
+            ${{ env.JHBUILD_SOURCE }}
+          key: jhbuild-arm64-gst${{ env.GST_LOCKED_VERSION }}-v3-${{ hashFiles('packaging/MacOS/**', '.github/workflows/macos-dmg.yml') }}
+          restore-keys: |
+            jhbuild-arm64-gst${{ env.GST_LOCKED_VERSION }}-v3-
+            jhbuild-arm64-gst${{ env.GST_LOCKED_VERSION }}-
+
+      - name: jhbuild bootstrap
+        if: steps.cache-jhbuild.outputs.cache-hit != 'true'
+        run: |
+          set -euxo pipefail
+          export PATH="${HOME}/.new_local/bin:$PATH"
+          jhbuild bootstrap-gtk-osx || jhbuild bootstrap
+
+      - name: Configure libffi compatibility
+        run: |
+          set -euxo pipefail
+          export PATH="${HOME}/.new_local/bin:$PATH"
+          jhbuild shell -c 'cat > ${JHBUILD_PREFIX}/lib/pkgconfig/libffi.pc <<EOF
+          prefix=$(xcrun --show-sdk-path)
+          libdir=\${prefix}/usr/lib
+          includedir=\${prefix}/usr/include/ffi
+
+          Name: libffi
+          Description: Library supporting Foreign Function Interfaces
+          Version: 3.4.6
+          Libs: -L\${libdir} -lffi
+          Cflags: -I\${includedir}
+          EOF' || true
+
+      - name: jhbuild build (full stack)
+        run: |
+          set -euxo pipefail
+          export PATH="${HOME}/.new_local/bin:$PATH"
+          # This is the long step (2-4h first time). Cached after.
+          jhbuild update meta-gtk-osx-bootstrap meta-gtk-osx-gtk3 meta-gtk-osx-python || true
+          jhbuild build meta-gtk-osx-bootstrap meta-gtk-osx-gtk3 meta-gtk-osx-python || true
+          # Pin GStreamer 1.24 modules
+          jhbuild build meta-gtk-osx-gstreamer || true
+
+      - name: Install pandoc
+        run: brew install pandoc || true
+
+      - name: Build xpra source + package
+        run: |
+          set -euxo pipefail
+          export PATH="${HOME}/.new_local/bin:$PATH"
+          cd packaging/MacOS
+          jhbuild shell -c 'export GSTREAMER_VIDEO=0; bash make-app.sh && bash make-DMG.sh' || \
+          jhbuild shell -c 'export GSTREAMER_VIDEO=0; bash make-app.sh && bash make-DMG.sh'
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xpra-arm64-${{ env.XPRA_VERSION_TAG }}.dmg
+          path: packaging/MacOS/*.dmg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create release on tag push
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packaging/MacOS/*.dmg
+          generate_release_notes: true
