@@ -1097,7 +1097,7 @@ fi
 
 
 %changelog
-* Wed May 06 2025 Antoine Martin <antoine@xpra.org> 6.5-10
+* Wed May 06 2026 Antoine Martin <antoine@xpra.org> 6.5-10
 - Platforms, build and packaging:
    use `wasapi2` on MS Windows
    support for Linux Mint in install scripts
