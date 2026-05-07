@@ -17,7 +17,6 @@ from xpra.wayland.wayland_surface cimport WaylandSurface, next_wid
 
 
 log = Logger("wayland")
-cdef bint debug = log.is_debug_enabled()
 
 
 # Listener slots for Subsurface. Tracking the wl_surface (commit/destroy) is
@@ -79,8 +78,7 @@ cdef class Subsurface(WaylandSurface):
         image = self.capture_pixels()
         if image is None:
             return
-        if debug:
-            log("%s commit: %s", self, image)
+        log("%s commit: %s", self, image)
         self._emit("subsurface-image", self.wid, image)
 
     cdef void destroy(self) noexcept:

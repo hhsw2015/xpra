@@ -76,7 +76,6 @@ def add_event_listener(event_name: str, callback: Callable) -> None:
 
 
 log = Logger("wayland")
-cdef bint debug = log.is_debug_enabled()
 
 
 # Listener slot indices for WaylandCompositor; N_LISTENERS sizes the listeners array.
@@ -320,8 +319,7 @@ cdef class WaylandCompositor(ListenerObject):
         xdg_surf = toplevel.base
         if xdg_surf == NULL:
             return
-        if debug:
-            log("New XDG surface CREATED (role: %d, initialized: %d)", xdg_surf.role, xdg_surf.initialized)
+        log("New XDG surface CREATED (role: %d, initialized: %d)", xdg_surf.role, xdg_surf.initialized)
         if xdg_surf.role != WLR_XDG_SURFACE_ROLE_TOPLEVEL:
             return
 

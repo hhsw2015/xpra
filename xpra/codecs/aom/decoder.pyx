@@ -25,7 +25,6 @@ from xpra.buffers.membuf cimport wrapbuf, MemBuf, buffer_context  # pylint: disa
 from xpra.codecs.argb.argb cimport show_plane_range
 
 
-cdef unsigned char debug_enabled = log.is_debug_enabled()
 cdef unsigned char SHOW_PLANE_RANGES = envbool("XPRA_SHOW_PLANE_RANGES", False)
 
 
@@ -295,9 +294,6 @@ cdef class Decoder:
 
 def selftest(full=False) -> None:
     log("aom selftest: %s", get_info())
-    if log.is_debug_enabled():
-        global debug_enabled
-        debug_enabled = True
     from xpra.codecs.checks import testdecoder
     from xpra.codecs.aom import decoder
     testdecoder(decoder, full)

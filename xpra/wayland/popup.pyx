@@ -18,7 +18,6 @@ from xpra.wayland.wlroots cimport (
 
 
 log = Logger("wayland")
-cdef bint debug = log.is_debug_enabled()
 
 
 cdef enum PopupListener:
@@ -138,8 +137,7 @@ cdef class Popup(WaylandSurface):
     cdef void reposition(self) noexcept:
         cdef tuple old_pos = (self.x, self.y)
         self.x, self.y = self.position()
-        if debug:
-            log("XDG popup REPOSITION: wid=%i %s -> %s", self.wid, old_pos, (self.x, self.y))
+        log("XDG popup REPOSITION: wid=%i %s -> %s", self.wid, old_pos, (self.x, self.y))
         self._emit("reposition", self.wid, (self.x, self.y))
 
     cdef void destroy(self) noexcept:
