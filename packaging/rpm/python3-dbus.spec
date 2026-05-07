@@ -16,8 +16,8 @@
 
 Summary: D-Bus Python3 Bindings
 Name:    %{py3rpmname}-dbus
-Version: 1.3.2
-Release: 2%{?dist}
+Version: 1.4.0
+Release: 1%{?dist}
 
 License: MIT
 URL:     http://www.freedesktop.org/wiki/Software/DBusBindings/
@@ -39,7 +39,7 @@ D-Bus python bindings for use with %{python3} programs.
 
 %prep
 sha256=`sha256sum %{SOURCE0} | awk '{print $1}'`
-if [ "${sha256}" != "ad67819308618b5069537be237f8e68ca1c7fcc95ee4a121fe6845b1418248f8" ]; then
+if [ "${sha256}" != "991666e498f60dbf3e49b8b7678f5559b8a65034fdf61aae62cdecdb7d89c770" ]; then
 	echo "invalid checksum for %{SOURCE0}"
 	exit 1
 fi
@@ -50,6 +50,7 @@ fi
 export DBUS_PYTHON_USE_AUTOTOOLS=1
 export PYTHON="%{python3}"
 export PYTHON_VERSION="%{python3_version}"
+NOCONFIGURE=1 ./autogen.sh
 %configure PYTHON="%{python3}"
 make
 
@@ -78,5 +79,8 @@ rm -fv %{buildroot}%{_libdir}/pkgconfig/dbus-python.pc
 %endif
 
 %changelog
+* Fri May 08 2026 Antoine Martin <antoine@xpra.org> - 1.4.0-1
+- new upstream release
+
 * Mon Oct 02 2023 Antoine Martin <antoine@xpra.org> - 1.3.2-1
 - new upstream release
