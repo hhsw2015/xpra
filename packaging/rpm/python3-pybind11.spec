@@ -13,8 +13,8 @@
 %endif
 
 Name:    pybind11
-Version: 2.13.6
-Release: 2%{?dist}
+Version: 3.0.4
+Release: 1%{?dist}
 Summary: Seamless operability between C++11 and Python
 License: BSD-3-Clause
 URL:	 https://github.com/pybind/pybind11
@@ -58,11 +58,18 @@ This package contains the Python 3 files.
 mkdir %{py3rpmname}
 %cmake -B %{py3rpmname} -DCMAKE_BUILD_TYPE=Debug -DPYTHON_EXECUTABLE=%{_bindir}/%{python3} -DPYBIND11_INSTALL=TRUE -DUSE_PYTHON_INCLUDE_DIR=FALSE -DPYBIND11_TEST=OFF
 %make_build -C %{py3rpmname}
-CFLAGS="$RPM_OPT_FLAGS" %{python3} setup.py build
 
 %install
 %make_install -C %{py3rpmname}
-PYBIND11_USE_CMAKE=true %py3_install "--install-purelib" "%{python3_sitearch}"
+mkdir -p %{buildroot}%{python3_sitearch}
+cp -r pybind11 %{buildroot}%{python3_sitearch}/
+mkdir -p %{buildroot}%{_bindir}
+cat > %{buildroot}%{_bindir}/pybind11-config <<EOF
+#!/usr/bin/%{python3}
+from pybind11.__main__ import main
+main()
+EOF
+chmod +x %{buildroot}%{_bindir}/pybind11-config
 
 %files devel
 %license LICENSE
@@ -74,8 +81,10 @@ PYBIND11_USE_CMAKE=true %py3_install "--install-purelib" "%{python3_sitearch}"
 
 %files -n %{py3rpmname}-%{name}
 %{python3_sitearch}/%{name}/
-%{python3_sitearch}/%{name}-%{version}-py%{python3_version}.egg-info
 
 %changelog
+* Fri May 08 2026 Antoine Martin <antoine@xpra.org> - 3.0.4-1
+- new upstream release
+
 * Sat Jan 18 2025 Fedora Release Engineering <releng@fedoraproject.org> - 2.13.6-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_42_Mass_Rebuild
