@@ -11,7 +11,7 @@
 %endif
 
 Name:           %{py3rpmname}-pylsqpack
-Version:        0.3.23
+Version:        0.3.24
 Release:        1%{?dist}
 Summary:        pylsqpack is a wrapper around the ls-qpack library
 Group:          Development/Languages
@@ -33,7 +33,7 @@ to read or write HTTP/3 headers compressed with QPACK.
 
 %prep
 sha256=`sha256sum %{SOURCE0} | awk '{print $1}'`
-if [ "${sha256}" != "f55b126940d8b3157331f123d4428d703a698a6db65a6a7891f7ec1b90c86c56" ]; then
+if [ "${sha256}" != "8ec455f44614228f89e38d40c1b1e37895620e20ec6b21e3b562fa8b79a23890" ]; then
 	echo "invalid checksum for %{SOURCE0}"
 	exit 1
 fi
@@ -62,6 +62,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri May 08 2026 Antoine Martin <antoine@xpra.org> - 0.3.24-1
+- new upstream release
+
 * Tue Oct 14 2025 Antoine Martin <antoine@xpra.org> - 0.3.23-1
 - new upstream release
 
