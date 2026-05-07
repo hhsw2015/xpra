@@ -17,8 +17,8 @@ exit
 
 %global pypi_name wheel
 Name:           %{py3rpmname}-%{pypi_name}
-Release:        2%{?dist}
-Version:        0.45.1
+Release:        1%{?dist}
+Version:        0.47.0
 Source0:        https://files.pythonhosted.org/packages/source/w/%{pypi_name}/%{pypi_name}-%{version}.tar.gz
 Summary:        Built-package format for Python
 Provides:       bundled(python3dist(packaging)) = 20.9
@@ -43,7 +43,7 @@ It has two different roles:
 
 %prep
 sha256=`sha256sum %{SOURCE0} | awk '{print $1}'`
-if [ "${sha256}" != "661e1abd9198507b1409a20c02106d9670b2576e916d58f520316666abca6729" ]; then
+if [ "${sha256}" != "cc72bd1009ba0cf63922e28f94d9d83b920aa2bb28f798a31d0691b02fa3c9b3" ]; then
 	echo "invalid checksum for %{SOURCE0}"
 	exit 1
 fi
@@ -83,6 +83,9 @@ mv %{buildroot}%{_bindir}/%{pypi_name} %{buildroot}%{_bindir}/%{pypi_name}-%{pyt
 
 
 %changelog
+* Fri May 08 2026 Antoine Martin <antoine@xpra.org> - 0.47.0-1
+- new upstream release
+
 * Mon Jan 06 2025 Antoine Martin <antoine@xpra.org> - 0.45.1-2
 - new upstream release
 
