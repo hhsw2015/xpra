@@ -109,7 +109,7 @@ jobs:
 
           # Build .deb
           dpkg-deb --build "$ROOT"
-          mv "dist/${PKG}.deb" dist/
+          # deb is already at dist/${PKG}.deb
           echo "=== Package ==="
           ls -lh "dist/${PKG}.deb"
           dpkg-deb -I "dist/${PKG}.deb"
