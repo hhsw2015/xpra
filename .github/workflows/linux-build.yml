@@ -36,7 +36,7 @@ jobs:
             xvfb xauth
           # Video codecs (important for performance)
           sudo apt-get install -y -qq \
-            libx264-dev libvpx-dev libopenh264-dev
+            libx264-dev libvpx-dev libopenh264-dev libaom-dev libsvtav1enc-dev
           # Optional (may not exist on all distros)
           sudo apt-get install -y -qq \
             libqrencode-dev libavif-dev libprocps-dev \
