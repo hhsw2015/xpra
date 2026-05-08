@@ -1,0 +1,82 @@
+name: Linux x86_64 Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths: ['xpra/**', 'setup.py']
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y -qq \
+            libgtk-3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+            libx11-dev libxcomposite-dev libxdamage-dev libxfixes-dev libxrandr-dev \
+            libxtst-dev libxkbfile-dev libxres-dev libdrm-dev \
+            libavcodec-dev libavformat-dev libavutil-dev libswscale-dev \
+            libvpx-dev libx264-dev libwebp-dev libopus-dev \
+            liblz4-dev libbrotli-dev libxxhash-dev \
+            libpam0g-dev libsystemd-dev \
+            pkg-config pandoc cython3 || true
+
+      - name: Install Python dependencies
+        run: |
+          pip install cython numpy pillow pycairo PyGObject rencode pynvml
+
+      - name: Build Cython extensions
+        run: |
+          python setup.py build_ext --inplace 2>&1 | tee /tmp/build.log | tail -30
+          echo "=== Built .so files ==="
+          find xpra -name "*.cpython-3*-linux-gnu.so" | wc -l
+          find xpra -name "*.cpython-3*-linux-gnu.so" | sort
+
+      - name: Package server install bundle
+        run: |
+          mkdir -p dist/xpra-server
+          # Copy all Python source
+          find xpra -name "*.py" | while read f; do
+            mkdir -p "dist/xpra-server/$(dirname $f)"
+            cp "$f" "dist/xpra-server/$f"
+          done
+          # Copy compiled .so
+          find xpra -name "*.so" | while read f; do
+            mkdir -p "dist/xpra-server/$(dirname $f)"
+            cp "$f" "dist/xpra-server/$f"
+          done
+          # Copy etc configs
+          cp -r fs/etc dist/xpra-server/etc 2>/dev/null || true
+          # Install script
+          cat > dist/xpra-server/install.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          DEST=${1:-/usr/lib/python3/dist-packages}
+          echo "Installing xpra to $DEST/xpra ..."
+          rm -rf "$DEST/xpra"
+          cp -R xpra "$DEST/xpra"
+          # Config
+          mkdir -p /etc/xpra
+          cp -rn etc/xpra/* /etc/xpra/ 2>/dev/null || true
+          echo "Done. Verify: python3 -c 'import xpra; print(xpra.__version__)'"
+          EOF
+          chmod +x dist/xpra-server/install.sh
+          cd dist && tar czf xpra-linux-x86_64-server.tar.gz xpra-server/
+          echo "=== Package ==="
+          ls -lh xpra-linux-x86_64-server.tar.gz
+          echo "=== .so count ==="
+          find xpra-server -name "*.so" | wc -l
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xpra-linux-x86_64-server
+          path: dist/xpra-linux-x86_64-server.tar.gz
+          retention-days: 30
