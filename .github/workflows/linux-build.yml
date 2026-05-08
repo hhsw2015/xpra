@@ -32,14 +32,19 @@ jobs:
       - name: Install Python dependencies
         run: |
           sudo apt-get install -y -qq python3-gi python3-cairo python3-pil python3-rencode || true
-          pip install cython numpy pynvml
+          pip install setuptools cython numpy pynvml
 
       - name: Build Cython extensions
         run: |
-          python setup.py build_ext --inplace 2>&1 | tee /tmp/build.log | tail -30
-          echo "=== Built .so files ==="
-          find xpra -name "*.cpython-3*-linux-gnu.so" | wc -l
+          python setup.py build_ext --inplace 2>&1 | tee /tmp/build.log | tail -50
+          SO_COUNT=$(find xpra -name "*.cpython-3*-linux-gnu.so" | wc -l)
+          echo "=== Built .so files: $SO_COUNT ==="
           find xpra -name "*.cpython-3*-linux-gnu.so" | sort
+          if [[ $SO_COUNT -lt 10 ]]; then
+            echo "ERROR: too few .so files ($SO_COUNT), build failed"
+            cat /tmp/build.log
+            exit 1
+          fi
 
       - name: Get version info
         id: version
