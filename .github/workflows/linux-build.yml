@@ -37,10 +37,12 @@ jobs:
           # Video codecs (important for performance)
           sudo apt-get install -y -qq \
             libx264-dev libvpx-dev libopenh264-dev libaom-dev libsvtav1enc-dev
-          # Optional (may not exist on all distros)
+          # Optional (best-effort, some may not exist)
           sudo apt-get install -y -qq \
             libqrencode-dev libavif-dev libprocps-dev \
-            libxpresent-dev || true
+            libxpresent-dev libxcursor-dev libxi-dev \
+            libwayland-dev libwayland-client0 \
+            libswscale-dev libavcodec-dev libavformat-dev libavutil-dev || true
           # Verify critical pkg-config
           pkg-config --libs libxxhash && echo "xxhash: OK"
           pkg-config --libs gdk-3.0 && echo "gtk: OK"
@@ -53,11 +55,12 @@ jobs:
           SO_COUNT=$(find xpra -name "*.cpython-3*-linux-gnu.so" | wc -l)
           echo "=== Built .so files: $SO_COUNT ==="
           find xpra -name "*.cpython-3*-linux-gnu.so" | sort
-          if [[ $SO_COUNT -lt 10 ]]; then
-            echo "ERROR: too few .so files ($SO_COUNT), build failed"
+          if [[ $SO_COUNT -lt 50 ]]; then
+            echo "ERROR: too few .so files ($SO_COUNT < 50), build failed"
             cat /tmp/build.log
             exit 1
           fi
+          echo "Build OK: $SO_COUNT modules (max possible ~90, skipped: nvidia/evdi/wlroots/libyuv)"
 
       - name: Get version info
         id: version
