@@ -31,7 +31,8 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install cython numpy pillow pycairo PyGObject rencode pynvml
+          sudo apt-get install -y -qq python3-gi python3-cairo python3-pil python3-rencode || true
+          pip install cython numpy pynvml
 
       - name: Build Cython extensions
         run: |
