@@ -1,0 +1,66 @@
+name: macOS arm64 Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, macos-build-gst124]
+    paths: ['xpra/**', 'setup.py']
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install brew dependencies
+        run: |
+          brew install gtk+3 pygobject3 gstreamer gst-plugins-base gst-plugins-good \
+            pkg-config xxhash libvpx x264 libyuv webp opus \
+            pango cairo gobject-introspection \
+            jpeg-turbo libpng libtiff openssl lz4 brotli
+
+      - name: Install Python dependencies
+        run: |
+          pip install cython numpy pillow pyobjc-framework-Quartz \
+            pygobject pycairo
+
+      - name: Build Cython extensions
+        run: |
+          python setup.py build_ext --inplace 2>&1 | tee /tmp/build.log | tail -50
+          rc=${PIPESTATUS[0]}
+          echo "=== Build exit code: $rc ==="
+          echo "=== Built .so files ==="
+          find xpra -name "*.cpython-311-darwin.so" | wc -l
+          find xpra -name "*.cpython-311-darwin.so"
+          if [[ $(find xpra -name "*.cpython-311-darwin.so" | wc -l) -lt 20 ]]; then
+            echo "ERROR: too few .so files built, check logs"
+            cat /tmp/build.log
+            exit 1
+          fi
+
+      - name: Package Python + .so files
+        run: |
+          mkdir -p dist/xpra-patch
+          cd xpra && find . -name "*.py" | while read f; do
+            mkdir -p "../dist/xpra-patch/xpra/$(dirname $f)"
+            cp "$f" "../dist/xpra-patch/xpra/$f"
+          done
+          find . -name "*.so" | while read f; do
+            mkdir -p "../dist/xpra-patch/xpra/$(dirname $f)"
+            cp "$f" "../dist/xpra-patch/xpra/$f"
+          done
+          cd ../dist/xpra-patch && tar czf ../xpra-macos-arm64-patch.tar.gz xpra/
+          echo "=== Artifact size ==="
+          ls -lh ../xpra-macos-arm64-patch.tar.gz
+          echo "=== .so count ==="
+          find xpra -name "*.so" | wc -l
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xpra-macos-arm64-patch
+          path: dist/xpra-macos-arm64-patch.tar.gz
+          retention-days: 30
