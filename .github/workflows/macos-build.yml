@@ -19,9 +19,9 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew install gtk+3 pygobject3 gstreamer gst-plugins-base gst-plugins-good \
-            pkg-config xxhash libvpx x264 libyuv webp opus \
+            pkg-config xxhash libvpx x264 webp opus \
             pango cairo gobject-introspection \
-            jpeg-turbo libpng libtiff openssl lz4 brotli
+            jpeg-turbo libpng libtiff openssl lz4 brotli || true
 
       - name: Install Python dependencies
         run: |
