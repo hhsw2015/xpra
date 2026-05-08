@@ -33,7 +33,10 @@ jobs:
           ARCHFLAGS: "-arch arm64"
           PKG_CONFIG_PATH: "/opt/homebrew/lib/pkgconfig:/opt/homebrew/share/pkgconfig:/opt/homebrew/opt/jpeg-turbo/lib/pkgconfig"
           C_INCLUDE_PATH: "/opt/homebrew/include"
+          CPPFLAGS: "-I/opt/homebrew/include"
+          CFLAGS: "-I/opt/homebrew/include"
           LIBRARY_PATH: "/opt/homebrew/lib"
+          LDFLAGS: "-L/opt/homebrew/lib"
         run: |
           python setup.py build_ext --inplace 2>&1 | tee /tmp/build.log | tail -50
           rc=${PIPESTATUS[0]}
