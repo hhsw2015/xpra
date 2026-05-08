@@ -128,8 +128,8 @@ jobs:
           sed -i 's/^          //' "$ROOT/DEBIAN/control"
           sed -i 's/^          //' "$ROOT/usr/bin/xpra"
 
-          # Build .deb
-          dpkg-deb --build "$ROOT"
+          # Build .deb (use xz compression for max compatibility)
+          dpkg-deb -Zxz --build "$ROOT"
           # deb is already at dist/${PKG}.deb
           echo "=== Package ==="
           ls -lh "dist/${PKG}.deb"
