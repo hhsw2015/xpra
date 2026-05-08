@@ -40,43 +40,81 @@ jobs:
           find xpra -name "*.cpython-3*-linux-gnu.so" | wc -l
           find xpra -name "*.cpython-3*-linux-gnu.so" | sort
 
-      - name: Package server install bundle
+      - name: Get version info
+        id: version
         run: |
-          mkdir -p dist/xpra-server
-          # Copy all Python source
+          VER=$(python -c "from xpra import __version__; print(__version__)" 2>/dev/null || echo "6.5")
+          REV=$(git rev-parse --short HEAD)
+          echo "ver=$VER" >> $GITHUB_OUTPUT
+          echo "rev=$REV" >> $GITHUB_OUTPUT
+          echo "Version: $VER ($REV)"
+
+      - name: Build .deb package
+        run: |
+          VER=${{ steps.version.outputs.ver }}
+          REV=${{ steps.version.outputs.rev }}
+          PKG="xpra-server-custom_${VER}-${REV}_amd64"
+          ROOT="dist/$PKG"
+
+          # Python modules → /usr/lib/python3/dist-packages/xpra
+          DEST="$ROOT/usr/lib/python3/dist-packages"
+          mkdir -p "$DEST"
+          # Copy .py
           find xpra -name "*.py" | while read f; do
-            mkdir -p "dist/xpra-server/$(dirname $f)"
-            cp "$f" "dist/xpra-server/$f"
+            mkdir -p "$DEST/$(dirname $f)"
+            cp "$f" "$DEST/$f"
           done
-          # Copy compiled .so
+          # Copy .so
           find xpra -name "*.so" | while read f; do
-            mkdir -p "dist/xpra-server/$(dirname $f)"
-            cp "$f" "dist/xpra-server/$f"
+            mkdir -p "$DEST/$(dirname $f)"
+            cp "$f" "$DEST/$f"
           done
-          # Copy etc configs
-          cp -r fs/etc dist/xpra-server/etc 2>/dev/null || true
-          # Install script
-          cat > dist/xpra-server/install.sh << 'EOF'
-          #!/bin/bash
-          set -e
-          DEST=${1:-/usr/lib/python3/dist-packages}
-          echo "Installing xpra to $DEST/xpra ..."
-          rm -rf "$DEST/xpra"
-          cp -R xpra "$DEST/xpra"
-          # Config
-          mkdir -p /etc/xpra
-          cp -rn etc/xpra/* /etc/xpra/ 2>/dev/null || true
-          echo "Done. Verify: python3 -c 'import xpra; print(xpra.__version__)'"
+
+          # Config → /etc/xpra
+          mkdir -p "$ROOT/etc"
+          cp -r fs/etc/xpra "$ROOT/etc/" 2>/dev/null || true
+
+          # Bin → /usr/bin/xpra (wrapper)
+          mkdir -p "$ROOT/usr/bin"
+          cat > "$ROOT/usr/bin/xpra" << 'XPRABIN'
+          #!/usr/bin/python3
+          import sys
+          from xpra.scripts.main import main
+          sys.exit(main())
+          XPRABIN
+          chmod +x "$ROOT/usr/bin/xpra"
+
+          # Systemd / helpers
+          mkdir -p "$ROOT/usr/libexec/xpra"
+          cp -r fs/lib/systemd "$ROOT/usr/lib/systemd" 2>/dev/null || true
+
+          # DEBIAN control
+          mkdir -p "$ROOT/DEBIAN"
+          SO_COUNT=$(find "$DEST/xpra" -name "*.so" | wc -l)
+          cat > "$ROOT/DEBIAN/control" << EOF
+          Package: xpra-server-custom
+          Version: ${VER}-${REV}
+          Architecture: amd64
+          Maintainer: local <local@local>
+          Description: Xpra server ${VER} (custom build from source, ${SO_COUNT} .so modules)
+           Built from commit ${REV}. Drop-in replacement for apt xpra packages.
+          Depends: python3, python3-gi, python3-cairo, gstreamer1.0-plugins-good, gstreamer1.0-pulseaudio, xvfb
+          Conflicts: xpra-server, xpra-common, xpra-x11
+          Replaces: xpra-server, xpra-common, xpra-x11
           EOF
-          chmod +x dist/xpra-server/install.sh
-          cd dist && tar czf xpra-linux-x86_64-server.tar.gz xpra-server/
+          # Remove leading spaces from control (heredoc artifact)
+          sed -i 's/^          //' "$ROOT/DEBIAN/control"
+          sed -i 's/^          //' "$ROOT/usr/bin/xpra"
+
+          # Build .deb
+          dpkg-deb --build "$ROOT"
+          mv "dist/${PKG}.deb" dist/
           echo "=== Package ==="
-          ls -lh xpra-linux-x86_64-server.tar.gz
-          echo "=== .so count ==="
-          find xpra-server -name "*.so" | wc -l
+          ls -lh "dist/${PKG}.deb"
+          dpkg-deb -I "dist/${PKG}.deb"
 
       - uses: actions/upload-artifact@v4
         with:
           name: xpra-linux-x86_64-server
-          path: dist/xpra-linux-x86_64-server.tar.gz
+          path: dist/*.deb
           retention-days: 30
