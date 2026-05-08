@@ -19,22 +19,30 @@ jobs:
       - name: Install build dependencies (all pkg-config deps from setup.py)
         run: |
           sudo apt-get update
+          # Core (must succeed)
           sudo apt-get install -y -qq \
             python3-dev python-gi-dev python3-cairo-dev pandoc pkg-config \
             libgtk-3-dev libglib2.0-dev libcairo2-dev \
             libx11-dev libxtst-dev libxcomposite-dev libxdamage-dev \
             libxres-dev libxkbfile-dev libxfixes-dev libxrandr-dev libxext-dev \
-            libxcursor-dev libxi-dev libxpresent-dev \
+            libxcursor-dev libxi-dev \
             libdrm-dev libpixman-1-dev \
             libsystemd-dev liblz4-dev libpam0g-dev \
-            libturbojpeg0-dev libwebp-dev libx264-dev libvpx-dev \
-            libxxhash-dev libbrotli-dev libqrencode-dev \
-            libopenh264-dev libavif-dev libyuv-dev \
+            libturbojpeg0-dev libwebp-dev \
+            libxxhash-dev libbrotli-dev \
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
             gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-pulseaudio \
-            libprocps-dev libproc2-dev \
             python3-gi python3-cairo python3-pil python3-numpy python3-opengl \
-            xvfb xauth || true
+            xvfb xauth
+          # Optional (may not exist on all distros)
+          sudo apt-get install -y -qq \
+            libx264-dev libvpx-dev libqrencode-dev \
+            libopenh264-dev libavif-dev libprocps-dev \
+            libxpresent-dev || true
+          # Verify critical pkg-config
+          pkg-config --libs libxxhash && echo "xxhash: OK"
+          pkg-config --libs gdk-3.0 && echo "gtk: OK"
+          pkg-config --libs pygobject-3.0 && echo "pygobject: OK"
           pip install setuptools cython pynvml
 
       - name: Build Cython extensions
