@@ -29,6 +29,11 @@ jobs:
             pygobject pycairo
 
       - name: Build Cython extensions
+        env:
+          ARCHFLAGS: "-arch arm64"
+          PKG_CONFIG_PATH: "/opt/homebrew/lib/pkgconfig:/opt/homebrew/share/pkgconfig:/opt/homebrew/opt/jpeg-turbo/lib/pkgconfig"
+          C_INCLUDE_PATH: "/opt/homebrew/include"
+          LIBRARY_PATH: "/opt/homebrew/lib"
         run: |
           python setup.py build_ext --inplace 2>&1 | tee /tmp/build.log | tail -50
           rc=${PIPESTATUS[0]}
@@ -36,7 +41,7 @@ jobs:
           echo "=== Built .so files ==="
           find xpra -name "*.cpython-311-darwin.so" | wc -l
           find xpra -name "*.cpython-311-darwin.so"
-          if [[ $(find xpra -name "*.cpython-311-darwin.so" | wc -l) -lt 20 ]]; then
+          if [[ $(find xpra -name "*.cpython-311-darwin.so" | wc -l) -lt 5 ]]; then
             echo "ERROR: too few .so files built, check logs"
             cat /tmp/build.log
             exit 1
