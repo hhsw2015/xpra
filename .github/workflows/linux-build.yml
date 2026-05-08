@@ -34,10 +34,12 @@ jobs:
             gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-pulseaudio \
             python3-gi python3-cairo python3-pil python3-numpy python3-opengl \
             xvfb xauth
+          # Video codecs (important for performance)
+          sudo apt-get install -y -qq \
+            libx264-dev libvpx-dev libopenh264-dev
           # Optional (may not exist on all distros)
           sudo apt-get install -y -qq \
-            libx264-dev libvpx-dev libqrencode-dev \
-            libopenh264-dev libavif-dev libprocps-dev \
+            libqrencode-dev libavif-dev libprocps-dev \
             libxpresent-dev || true
           # Verify critical pkg-config
           pkg-config --libs libxxhash && echo "xxhash: OK"
