@@ -24,6 +24,47 @@ def do_init_env() -> None:
     if os.environ.get("CRYPTOGRAPHY_OPENSSL_NO_LEGACY") is None:
         os.environ["CRYPTOGRAPHY_OPENSSL_NO_LEGACY"] = "1"
     setup_app_bundle_env()
+    setup_debug_logging()
+
+
+def setup_debug_logging() -> None:
+    """Honor ~/.xpra/debug and XPRA_LOG_TO_FILE.
+
+    Replicates the logic that used to live in packaging/MacOS/Helpers/Xpra
+    (the shell-script wrapper). The compiled launcher is intentionally
+    minimal and does not parse this; we do it here so it applies uniformly
+    to every entry point that goes through do_init_env().
+    """
+    if os.environ.get("XPRA_BUNDLE_CONTENTS", "") == "":
+        return
+    debug_file = os.path.join(os.path.expanduser("~"), ".xpra", "debug")
+    debug_arg = ""
+    try:
+        with open(debug_file, "r", encoding="utf-8") as f:
+            debug_arg = f.read().strip()
+    except OSError:
+        pass
+    if debug_arg:
+        os.environ["XPRA_LOG_TO_FILE"] = "1"
+        sys.argv.append(f"--debug={debug_arg}")
+    if os.environ.get("XPRA_LOG_TO_FILE") != "1":
+        return
+    log_filename = os.environ.get("XPRA_LOG_FILENAME", "")
+    if not log_filename:
+        log_filename = os.path.join(os.path.expanduser("~"), ".xpra", f"debug-{os.getpid()}.log")
+        os.environ["XPRA_LOG_FILENAME"] = log_filename
+    try:
+        os.makedirs(os.path.dirname(log_filename), exist_ok=True)
+        log_fd = open(log_filename, "a", buffering=1, encoding="utf-8")
+    except OSError:
+        return
+    log_fd.write(f"xpra debug output (pid={os.getpid()})\n")
+    log_fd.write("env:\n")
+    for k in sorted(os.environ):
+        log_fd.write(f"  {k}={os.environ[k]}\n")
+    log_fd.write(f"\nargv={sys.argv}\n\n")
+    sys.stdout = log_fd
+    sys.stderr = log_fd
 
 
 def setup_app_bundle_env() -> None:
@@ -137,3 +178,11 @@ def patch_find_library() -> None:
 
 if os.environ.get("XPRA_OSX_PATCH_FIND_LIBRARY", "1") == "1":
     patch_find_library()
+
+
+# Run as early as possible: xpra.platform.init() calls set_name() (which
+# imports GLib via gi) BEFORE init_env(), so by the time do_init_env() would
+# normally run, gi/GLib has already been loaded with stale env. Setting up
+# the bundle env at module-import beats that ordering — the launcher sets
+# XPRA_BUNDLE_CONTENTS, this fires immediately after the module loads.
+setup_app_bundle_env()
