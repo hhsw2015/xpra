@@ -8,8 +8,6 @@
 		<!-- Comment this out to keep the install names in binaries.  -->
 		<run-install-name-tool/>
 
-		<launcher-script>${project}/Helpers/Launcher</launcher-script>
-
 		<gtk>gtk+-3.0</gtk>
 	</meta>
 
@@ -22,10 +20,6 @@
 	<binary dest="${bundle}/Contents/Frameworks/bin/Python">
 		${env:PYTHON}
 	</binary>
-
-	<data dest="${bundle}/Contents/MacOS/">
-		${project}/Helpers/Xpra
-	</data>
 
 	<!-- Copy in libpyglib, which will pull in other dependencies we need -->
 	<binary>
