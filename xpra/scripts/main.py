@@ -929,8 +929,8 @@ def do_run_mode(script_file: str, cmdline: list[str], error_cb: Callable, option
     if mode == "otp":
         return run_otp(args)
     if mode == "configure":
-        from xpra.gtk.configure.main import main
-        return main(args)
+        from xpra.gtk.configure.main import do_main
+        return do_main(args)
     if mode == "wait-for-x11":
         from xpra.x11.wait import main
         return main(args)
