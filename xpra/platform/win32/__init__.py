@@ -247,6 +247,8 @@ def do_init_env() -> None:
     init_env_common()
     if os.environ.get("CRYPTOGRAPHY_OPENSSL_NO_LEGACY") is None:
         os.environ["CRYPTOGRAPHY_OPENSSL_NO_LEGACY"] = "1"
+    if os.environ.get("PANGOCAIRO_BACKEND") is None:
+        os.environ["PANGOCAIRO_BACKEND"] = "fc"
     # if os.environ.get("GDK_WIN32_DISABLE_HIDPI") is None:
     #    os.environ["GDK_WIN32_DISABLE_HIDPI"] = "1"
     #    os.environ["GDK_WIN32_PER_MONITOR_HIDPI"] = "1"
