@@ -29,11 +29,8 @@ RECONNECT_DELAY = envint("XPRA_REMOTE_RECONNECT_DELAY", 2000)
 CONNECT_POLL_DELAY = envint("XPRA_REMOTE_CONNECT_POLL_DELAY", 10000)
 
 
-opts = make_defaults_struct()
 try:
     from xpra.client.subsystem.mmap import MmapClient as baseclass
-    opts.mmap = "both"
-    opts.mmap_group = ""
 except ImportError:
     from xpra.client.base.stub import StubClientMixin as baseclass
 
@@ -116,17 +113,24 @@ class RemoteServerAdapter(baseclass):
         self.reconnect_delay = to.intget("reconnect-delay", RECONNECT_DELAY)
         self.connect_poll_delay = to.intget("connect-poll-delay", CONNECT_POLL_DELAY)
         self.system_socket_path = to.strget("system-socket", self.SYSTEM_SOCKET_PATH)   # NOSONAR @SuppressWarnings("python:S1845")
-        self.sessions_dir = osexpand(to.strget("sessions-dir", opts.sessions_dir))
+        self.sessions_dir = osexpand(to.strget("sessions-dir", options.sessions_dir))
         self.connect_timer = 0
         self.connecting = False
         self.protocol = None
         self._ordinary_packets = []
         self.connect_event = Event()
-        super().init(opts)
+        super().init(options)
 
     def cleanup(self) -> None:
         self.cancel_schedule_connect()
         super().cleanup()
+
+    def init(self, opts) -> None:
+        # we want bidirectional mmap by default:
+        if opts.mmap == "auto":
+            opts.mmap = "both"
+            opts.mmap_group = ""
+        super().init(opts)
 
     def cancel_schedule_connect(self) -> None:
         if ct := self.connect_timer:
