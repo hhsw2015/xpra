@@ -2687,7 +2687,7 @@ else:
             'frameworks'        : ['CoreFoundation', 'Foundation', 'AppKit'],
         }
         setup_options["options"] = {"py2app": py2app_options}
-        setup_options["app"]     = ["xpra/scripts/main.py"]
+        setup_options["app"]     = ["xpra/scripts/run.py"]
 
 
 if WIN32 or OSX:

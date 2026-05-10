@@ -118,34 +118,22 @@ int main(int argc, char **argv) {
     setenv("PYTHONPATH", buf, 1);
 
     char module[256];
-    if (strcmp(helper_name, "Xpra") == 0) {
-        strcpy(module, "xpra.scripts.main");
-    } else {
-        char modfile[PATH_MAX];
-        snprintf(modfile, sizeof(modfile),
-                 "%s/Resources/share/xpra/helpers/%s", contents, helper_name);
-        if (read_module_file(modfile, module, sizeof(module)) != 0) {
-            fprintf(stderr, "launcher: cannot read entry module from %s\n", modfile);
-            return 1;
-        }
+    char modfile[PATH_MAX];
+    snprintf(modfile, sizeof(modfile),
+             "%s/Resources/share/xpra/helpers/%s", contents, helper_name);
+    if (read_module_file(modfile, module, sizeof(module)) != 0) {
+        fprintf(stderr, "launcher: cannot read entry module from %s\n", modfile);
+        return 1;
     }
 
     /* Python -c invocation. xpra.scripts.main.main(script_file, cmdline)
      * takes two args; every other module takes a single argv list. */
     char code[PATH_MAX + 512];
-    if (strcmp(module, "xpra.scripts.main") == 0) {
-        snprintf(code, sizeof(code),
-            "import sys;sys.argv[0]='%s';"
-            "from %s import main;"
-            "sys.exit(main(sys.argv[0], sys.argv))",
-            exe_path, module);
-    } else {
-        snprintf(code, sizeof(code),
-            "import sys;sys.argv[0]='%s';"
-            "from %s import main;"
-            "sys.exit(main(sys.argv))",
-            exe_path, module);
-    }
+    snprintf(code, sizeof(code),
+        "import sys;sys.argv[0]='%s';"
+        "from %s import main;"
+        "sys.exit(main(sys.argv))",
+        exe_path, module);
 
     int new_argc = argc + 2;
     char **new_argv = calloc((size_t)new_argc + 1, sizeof(char *));
