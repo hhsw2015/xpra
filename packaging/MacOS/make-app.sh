@@ -493,17 +493,58 @@ for dylib in *.dylib; do
 done
 
 if [ "${DO_X11}" == "1" ]; then
-  echo "  X11"
+  HOST_ARCH=$(uname -m)
+  echo "  X11 (host arch: ${HOST_ARCH})"
+  # /opt/X11 ships universal binaries; the rest of the bundle is host-arch only.
+  # Strip the foreign slice so codesign doesn't have to manage two slices, and so
+  # we can't end up with one slice signed and the other not (which arm64 SIGKILLs
+  # silently, surfacing as "zsh: Killed").
+  thin_macho() {
+    local f="$1"
+    if file "$f" 2>/dev/null | grep -q "Mach-O universal"; then
+      lipo -thin "${HOST_ARCH}" "$f" -output "$f" 2>/dev/null || true
+    fi
+  }
+
   cd "${FRAMEWORKS_DIR}/X11/bin" || exit 1
   for bin in *; do
+    if [[ -L "${bin}" ]]; then
+      continue
+    fi
+    thin_macho "${bin}"
     codesign --remove-signature "${bin}"
     change_prefix "${bin}" "/opt/X11/lib/" "@executable_path/../lib/"
   done
+
   cd "${FRAMEWORKS_DIR}/X11/lib" || exit 1
   for dylib in *.dylib; do
+    if [[ -L "${dylib}" ]]; then
+      continue
+    fi
+    thin_macho "${dylib}"
     codesign --remove-signature "${dylib}"
+    # claim our own identity so downstream consumers don't see /opt/X11/lib/...
+    install_name_tool -id "@loader_path/${dylib}" "${dylib}"
     change_prefix "${dylib}" "/opt/X11/lib/" "@loader_path/"
   done
+
+  # dri/ drivers were copied but not previously fixed up — they kept their
+  # /opt/X11/lib/ load commands and original XQuartz signatures, which doesn't
+  # survive sign-app.sh's deep re-sign on a fresh machine.
+  if [ -d "${FRAMEWORKS_DIR}/X11/lib/dri" ]; then
+    cd "${FRAMEWORKS_DIR}/X11/lib/dri" || exit 1
+    for f in *; do
+      if [[ -L "${f}" ]]; then
+        continue
+      fi
+      if ! file "${f}" 2>/dev/null | grep -q "Mach-O"; then
+        continue
+      fi
+      thin_macho "${f}"
+      codesign --remove-signature "${f}"
+      change_prefix "${f}" "/opt/X11/lib/" "@loader_path/../"
+    done
+  fi
 fi
 echo "- python interpreter"
 for bin in "${FRAMEWORKS_DIR}/bin/"*; do
