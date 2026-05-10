@@ -13,6 +13,8 @@ def do_init() -> None:
         if x.startswith("-psn_"):
             sys.argv.remove(x)
     if os.environ.get("XPRA_HIDE_DOCK", "") == "1":
+        from xpra.util.thread import check_main_thread
+        check_main_thread()
         from AppKit import NSApp
         # NSApplicationActivationPolicyAccessory = 1
         NSApp.setActivationPolicy_(1)
@@ -130,6 +132,8 @@ macapp = None
 def get_OSXApplication():
     global macapp
     if macapp is None:
+        from xpra.util.thread import check_main_thread
+        check_main_thread()
         from xpra.os_util import gi_import
         osxapp = gi_import("GtkosxApplication")
         macapp = osxapp.Application()
