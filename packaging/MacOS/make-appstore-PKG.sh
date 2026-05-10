@@ -65,10 +65,6 @@ helper_wrapper "sshpass" "C"
 #make it work with a symlink (ugly hack):
 ln -sf . appstore/Xpra.app/Contents/Resources/Resources
 
-#keep only one binary in MacOS:
-rm -f appstore/Xpra.app/Contents/MacOS/*
-gcc -arch i386 -o "appstore/Xpra.app/Contents/MacOS/Launcher" "./Shell-wrapper.c"
-
 echo "MacOS:"
 ls -la@ appstore/Xpra.app/Contents/MacOS
 echo
