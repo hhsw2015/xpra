@@ -165,7 +165,7 @@ class SplashScreen(Gtk.Window):
                 start_thread(download, "download-icon", daemon=True)
             else:
                 set_icon(icon_name)
-        self.title_label = label(title, font=f"Adwaita sans {FONT_SIZE+5}")
+        self.title_label = label(title, font=f"Sans {FONT_SIZE+5}")
         self.title_label.set_css_name("title")
         al = Gtk.Alignment(xalign=0.2, yalign=0.5, xscale=0, yscale=0)
         al.add(self.title_label)
@@ -173,7 +173,7 @@ class SplashScreen(Gtk.Window):
         vbox.add(hbox)
         self.labels = []
         for i in range(LINES):
-            lbl = label(" ", font=f"Adwaita sans {FONT_SIZE}")
+            lbl = label(" ", font=f"Sans {FONT_SIZE}")
             lbl.set_css_name("label")
             lbl.set_opacity(sqrt((i + 1) / LINES))
             self.labels.append(lbl)
