@@ -66,14 +66,13 @@ def get_gtk_keymap(ignore_keys=("", "VoidSymbol", "0xffffff")) -> Sequence[tuple
     return tuple(keycodes)
 
 
-def main() -> int:  # pragma: no cover
+def main(args: list[str]) -> int:  # pragma: no cover
     # pylint: disable=import-outside-toplevel
-    import sys
     from xpra.platform import program_context
     from xpra.log import enable_color, consume_verbose_argv
     with program_context("Keymap-Tool", "Keymap Information Tool"):
         enable_color()
-        consume_verbose_argv(sys.argv, "keyboard")
+        consume_verbose_argv(args, "keyboard")
         gtk_keymap = get_gtk_keymap()
         sizes = [16, 28, 8, 8, 8]
 
@@ -87,4 +86,5 @@ def main() -> int:  # pragma: no cover
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main()
+    import sys
+    main(sys.argv)
