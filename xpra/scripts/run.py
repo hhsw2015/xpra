@@ -11,12 +11,13 @@
 
 def main(argv: list[str]):
     from xpra.scripts.main import main as legacy_main
-    return legacy_main(argv[0], argv[1:])
+    return legacy_main(argv[0], argv)
 
 
 if __name__ == "__main__":  # pragma: no cover
     import sys
-    code = main(["xpra.exe"] + sys.argv)
+    from xpra.scripts.main import main as legacy_main
+    code = legacy_main("xpra.exe", sys.argv)
     if not code:
         code = 0
     sys.exit(code)
