@@ -19,7 +19,7 @@ def run_gui(gui_class) -> int:
     # pylint: disable=import-outside-toplevel
     from xpra.platform import program_context
     from xpra.log import enable_color
-    from xpra.platform.gui import init, ready
+    from xpra.platform.gui import init, ready, force_focus
     from xpra.gtk.util import gtk_main, quit_on_signals
     with program_context("xpra-configure-gui", "Xpra Configure GUI"):
         enable_color()
@@ -27,6 +27,7 @@ def run_gui(gui_class) -> int:
         gui = gui_class()
         quit_on_signals("xpra-configure-gui")
         ready()
+        force_focus()
         gui.show()
         gtk_main()
         log("do_main() gui.exit_code=%i", gui.exit_code)
