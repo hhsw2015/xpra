@@ -2381,7 +2381,7 @@ else:
             libexec_scripts += ["xdg-open", "gnome-open", "gvfs-open"]
         if server_ENABLED:
             libexec_scripts.append("auth_dialog")
-    if x11_ENABLED:
+    if x11_ENABLED and not OSX:
         libexec_scripts.append("xpra_weston_xvfb")
 
     def add_data_files(target_dir: str, files) -> None:
