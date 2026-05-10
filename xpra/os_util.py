@@ -52,6 +52,12 @@ def gi_import(mod="Gtk", version="") -> ModuleType:
     version = version or GIR_VERSIONS.get(mod, "")
     from xpra.util.env import SilenceWarningsContext
     with SilenceWarningsContext(DeprecationWarning, ImportWarning):
+        if OSX:
+            # on macos, we must ensure the environment has been setup correctly
+            # before we can load any gi bindings,
+            # this is done as a side-effect of loading the darwin module:
+            import xpra.platform.darwin
+            assert xpra.platform.darwin
         import gi
         try:
             gi.require_version(mod, version)
