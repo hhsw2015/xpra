@@ -7,6 +7,7 @@
 from xpra.os_util import gi_import
 from xpra.client.base.client import EXTRA_TIMEOUT
 from xpra.exit_codes import ExitValue, ExitCode
+from xpra.util.env import SilenceWarningsContext
 from xpra.util.glib_scheduler import GLibScheduler
 from xpra.log import Logger
 
@@ -39,7 +40,8 @@ class GObjectClientAdapter(GObject.GObject, GLibScheduler):
         return self.exit_code or ExitCode.OK
 
     def run_loop(self) -> None:
-        self.glib_mainloop.run()
+        with SilenceWarningsContext(DeprecationWarning):
+            self.glib_mainloop.run()
 
     def quit(self, exit_code: ExitValue = ExitCode.OK) -> None:
         log("quit(%s) current exit_code=%s", exit_code, self.exit_code)
