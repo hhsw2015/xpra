@@ -12,7 +12,7 @@ from time import monotonic
 from typing import Any, Dict, Tuple
 from collections.abc import Sequence
 
-from xpra.codecs.constants import VideoSpec
+from xpra.codecs.constants import VideoSpec, EncodingNotSupported
 from xpra.util.objects import typedict
 from xpra.codecs.image import ImageWrapper
 from xpra.log import Logger
@@ -164,6 +164,9 @@ cdef class Decoder:
         cdef int codec = CODECS[encoding]
         cdef MFDecodeStatus status = mf_decoder_create(&self.context, codec, width, height)
         if status != MF_DEC_OK:
+            if status == MF_DEC_NOT_AVAILABLE:
+                raise EncodingNotSupported("failed to create MF %s decoder (%dx%d): %s" % (
+                    encoding, width, height, mf_decode_status_str(status).decode("latin-1")))
             raise RuntimeError("failed to create MF %s decoder (%dx%d): %s" % (
                 encoding, width, height, mf_decode_status_str(status).decode("latin-1")))
         hardware = bool(mf_decoder_is_hardware(self.context))

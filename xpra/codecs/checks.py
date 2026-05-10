@@ -359,6 +359,9 @@ def testdecoder(decoder_module, full: bool) -> Sequence[str]:
         in_cs = spec.input_colorspace
         try:
             testdecoding(decoder_module, encoding, in_cs, full)
+        except EncodingNotSupported:
+            log(f"{dtype}: {encoding} decoding failed", exc_info=True)
+            codecs.remove(encoding)
         except Exception as e:
             log(f"{dtype}: {encoding} decoding failed", exc_info=True)
             log.warn(f"{dtype}: {encoding} decoding failed: {e}")
@@ -391,6 +394,9 @@ def testdecoding(decoder_module, encoding: str, cs: str, full: bool) -> None:
             try:
                 decoder = decoder_module.Decoder()
                 decoder.init_context(encoding, w, h, cs, typedict())
+            except EncodingNotSupported:
+                log(f"Error creating context {encoding} {w}x{h} {cs}", exc_info=True)
+                raise
             except Exception:
                 log.error(f"Error creating context {encoding} {w}x{h} {cs}")
                 raise
