@@ -815,7 +815,7 @@ def add_manifests(light: bool) -> None:
             "OpenGL_check",
             "GTK_info", "NativeGUI_info", "Screenshot",
             "Version_info", "Network_info", "Keymap_info", "Keyboard_info",
-            "SystemTray_Test", "U2F_Tool",
+            "SystemTray_Test", "U2F_Tool", "Fido2_Tool",
             "SQLite_auth_tool", "SQL_auth_tool",
             "Encoding_info", "Path_info", "Feature_info", "NativeGUI_info",
             "Xpra_Audio",
