@@ -386,12 +386,19 @@ if [ "${DO_X11}" == "1" ]; then
 	for cmd in "Xvfb" "glxgears" "glxinfo" "oclock" "setxkbmap" "uxterm" "xauth" "xcalc" "xclock" "xdpyinfo" "xev" "xeyes" "xhost" "xkill" "xload" "xlsclients" "xmodmap" "xprop" "xrandr" "xrdb" "xset" "xterm" "xwininfo"; do
 		cp "/opt/X11/bin/${cmd}" "${FRAMEWORKS_DIR}/X11/bin"
 	done
-  mkdir "${FRAMEWORKS_DIR}/X11/lib"
-	for lib in "libGL" "libICE" "libOSMesa" "libX11" "libXRes" "libXau" "libXaw" "libXcomposite" "libXcursor" "libXdamage" "libXext" "libXfixes" "libXfont" "libXpm" "libXpresent" "libXrandr" "libXrender" "libXt" "libXtst" "libxkbfile" "libxshmfence"; do
+	mkdir "${FRAMEWORKS_DIR}/X11/lib"
+	for lib in "libGL" "libICE" "libOSMesa" "libX11" "libXRes" "libXau" "libXaw" "libXaw7" "libXcomposite" "libXcursor" "libXdamage" "libXext" "libXfixes" "libXfont" "libXpm" "libXpresent" "libXrandr" "libXrender" "libXt" "libXtst" "libxkbfile" "libxshmfence"; do
 		rsync -rplt "/opt/X11/lib/${lib}".* "${FRAMEWORKS_DIR}/X11/lib/"
 	done
-  mkdir "${FRAMEWORKS_DIR}/X11/lib/dri"
+	# We don't ship Xaw6 (no consumer in our X11 binary list), so the
+	# libXaw.6.dylib SONAME shim that rsync just dragged in dangles. Drop it.
+	rm -f "${FRAMEWORKS_DIR}/X11/lib/libXaw.6.dylib"
+	mkdir "${FRAMEWORKS_DIR}/X11/lib/dri"
 	cp "/opt/X11/lib/dri/"* "${FRAMEWORKS_DIR}/X11/lib/dri/"
+	# Strip XQuartz's Apple Developer ID signatures upfront. install_name_tool
+	# invalidates signatures anyway, and sign-app.sh re-signs everything; doing
+	# it here once means the per-binary fixup loops below don't have to.
+	find "${FRAMEWORKS_DIR}/X11" -type f -exec codesign --remove-signature {} + 2>/dev/null || true
 fi
 
 echo "- gobject-introspection"
@@ -512,7 +519,6 @@ if [ "${DO_X11}" == "1" ]; then
       continue
     fi
     thin_macho "${bin}"
-    codesign --remove-signature "${bin}"
     change_prefix "${bin}" "/opt/X11/lib/" "@executable_path/../lib/"
   done
 
@@ -522,15 +528,13 @@ if [ "${DO_X11}" == "1" ]; then
       continue
     fi
     thin_macho "${dylib}"
-    codesign --remove-signature "${dylib}"
     # claim our own identity so downstream consumers don't see /opt/X11/lib/...
     install_name_tool -id "@loader_path/${dylib}" "${dylib}"
     change_prefix "${dylib}" "/opt/X11/lib/" "@loader_path/"
   done
 
   # dri/ drivers were copied but not previously fixed up — they kept their
-  # /opt/X11/lib/ load commands and original XQuartz signatures, which doesn't
-  # survive sign-app.sh's deep re-sign on a fresh machine.
+  # /opt/X11/lib/ load commands, which won't resolve on a fresh machine.
   if [ -d "${FRAMEWORKS_DIR}/X11/lib/dri" ]; then
     cd "${FRAMEWORKS_DIR}/X11/lib/dri" || exit 1
     for f in *; do
@@ -541,7 +545,6 @@ if [ "${DO_X11}" == "1" ]; then
         continue
       fi
       thin_macho "${f}"
-      codesign --remove-signature "${f}"
       change_prefix "${f}" "/opt/X11/lib/" "@loader_path/../"
     done
   fi

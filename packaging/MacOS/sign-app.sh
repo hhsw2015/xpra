@@ -45,7 +45,7 @@ export ENTITLEMENTS_FILE
 
 # for libraries and executables:
 function sign_runtime() {
-  codesign --remove-signature "$@"
+  codesign --remove-signature "$@" 2>/dev/null || true
   if [ -z "${ENTITLEMENTS_FILE}" ]; then
     codesign --sign "${CODESIGN_KEYNAME}" --options runtime --timestamp "$@"
   else
@@ -55,7 +55,7 @@ function sign_runtime() {
 
 # for plain python modules:
 function sign() {
-  codesign --remove-signature "$@"
+  codesign --remove-signature "$@" 2>/dev/null || true
   codesign --sign "${CODESIGN_KEYNAME}" "$@"
 }
 
@@ -73,9 +73,14 @@ find "${CONTENTS_DIR}/" -type f -name "*.pyc" -exec bash -c 'sign "$0"' {} \;
 
 if [ -d "${X11_DIR}/bin" ]; then
     echo "  X11"
-    sign_runtime "${X11_DIR}/bin/"*
-    sign_runtime "${X11_DIR}/lib/"*.dylib
-    sign_runtime "${X11_DIR}/lib/dri/"*
+    # Skip symlinks: when both libFoo.dylib (symlink) and libFoo.N.dylib (target)
+    # are passed in the same codesign batch, codesign signs the target via the
+    # symlink first and then errors "is already signed" on the explicit target.
+    for f in "${X11_DIR}/bin/"* "${X11_DIR}/lib/"*.dylib "${X11_DIR}/lib/dri/"*; do
+      [[ -L "${f}" ]] && continue
+      [[ -e "${f}" ]] || continue
+      sign_runtime "${f}"
+    done
 fi
 echo "  Frameworks/bin"
 # only sign the actual binaries / unique scripts, not the symlinks:
